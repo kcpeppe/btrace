@@ -1,0 +1,104 @@
+/*
+ * Copyright (c) 2013, Kirk Pepperdine All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ * * Please contact Kirk Pepperdine, 36 Meggyfa u., Nyiregyhaza 4405, Hungary
+ * or visit www.kodewerk.com if you need additional information or have any
+ * questions.
+ */
+
+import java.util.concurrent.atomic.AtomicLong;
+import com.sun.btrace.*;
+import com.sun.btrace.annotations.*;
+import static com.sun.btrace.BTraceUtils.*;
+
+@BTrace
+public class TracingScript {
+    
+    @Property private static volatile String statementStackFrame = "empty";
+    @Property private static volatile String preparedStatementStackFrame = "empty";
+    @Property private static volatile String resultSetStackFrame = "empty";
+    
+    @Property static volatile long statementThreshold = 5;
+    @Property static volatile long preparedStatementThreshold = 5;
+    @Property static volatile long resultSetThreshold = 5;
+    
+    @Property static AtomicLong statmentMethodCallCount = newAtomicLong(0L);
+    @Property static AtomicLong preparedStatmentMethodCallCount = newAtomicLong(0L);
+    @Property static AtomicLong resultSetMethodCallCount = newAtomicLong(0L);
+     
+    @OnMethod(
+        clazz = "+java.sql.Statement",
+        method = "/.*/",
+        location = @Location( Kind.RETURN )
+    )
+    public static void onStatementReturn( @ProbeClassName String className,
+                                     @ProbeMethodName String probeMethod,
+                                     @Duration long duration ) {
+                                         
+        String statementMethod = strcat( strcat( className, "::" ), probeMethod );
+        addAndGet( statmentMethodCallCount,1);
+        if ( duration > statementThreshold) {
+            println( strcat( Threads.name(Threads.currentThread())
+                     , strcat(","
+                     , strcat( statementMethod
+                     , strcat (",", str( duration ))))));
+            statementStackFrame = Threads.jstackStr();
+        }
+    }
+    
+    @OnMethod(
+        clazz = "+java.sql.PreparedStatement",
+        method = "/.*/",
+        location = @Location( Kind.RETURN )
+    )
+    public static void onPreparedStatementReturn( @ProbeClassName String className,
+                                     @ProbeMethodName String probeMethod,
+                                     @Duration long duration ) {
+                                         
+        String statementMethod = strcat( strcat( className, "::" ), probeMethod );
+        addAndGet( preparedStatmentMethodCallCount, 1);
+        if ( duration > preparedStatementThreshold) {
+            println( strcat( Threads.name(Threads.currentThread())
+                     , strcat(","
+                     , strcat( statementMethod
+                     , strcat (",", str( duration ))))));
+            preparedStatementStackFrame = Threads.jstackStr();
+        }
+    }
+     
+    @OnMethod(
+        clazz = "+java.sql.ResultSet",
+        method = "/.*/",
+        location = @Location( Kind.RETURN )
+    )
+    public static void onResultSetReturn( @ProbeClassName String className,
+                                     @ProbeMethodName String probeMethod,
+                                     @Duration long duration ) {
+        
+        String resultSetMethod = strcat( strcat( className, "::" ), probeMethod );
+        addAndGet( resultSetMethodCallCount, 1);
+        if ( duration > resultSetThreshold) {
+            println( strcat( Threads.name(Threads.currentThread())
+                     , strcat(","
+                     , strcat( resultSetMethod
+                     , strcat (",", str( duration ))))));
+            resultSetStackFrame = Threads.jstackStr();
+        }
+    }
+}

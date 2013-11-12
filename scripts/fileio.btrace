@@ -1,0 +1,46 @@
+/*
+ * Copyright (c) 2013, Kirk Pepperdine All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Kirk Pepperdine, 36 Meggyfa u., Nyiregyhaza 4405, Hungary
+ * or visit www.kodewerk.com if you need additional information or have any
+ * questions.
+ */
+
+import com.sun.btrace.annotations.*;
+import static com.sun.btrace.BTraceUtils.*;
+import java.util.concurrent.atomic.AtomicLong;
+
+@BTrace
+public class TracingScript {
+
+    @Property
+    private static AtomicLong dataInCount = newAtomicLong(0L);
+    
+    @Property
+    private static volatile String currentStackFrame = "empty";
+ 
+    @OnMethod(clazz = "+java.io.DataInputStream", method = "read", location = @Location(Kind.RETURN))
+    public static void countDataRead(@Return int count){
+        if (count > -1) {            
+            addAndGet(dataInCount, count);
+            currentStackFrame = Threads.jstackStr();
+        }
+    }
+}
